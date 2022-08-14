@@ -1,38 +1,37 @@
-use std::{io::{stdout, Write, stdin}, process::Command};
-
-use crate::parsing::parse;
-
-
 mod parsing;
+mod executing;
+mod input;
+mod data;
+mod completation;
+
+use std::{io::{stdout, Write}, env};
+
+use parsing::parse;
+
 
 fn main() {
+
+    //crossterm::terminal::enable_raw_mode().unwrap();
+
+    let mut history = data::History::init();
     
     loop {
-
-        print!("{}", get_prompt());
+        print_prompt();
         stdout().flush().unwrap();
 
         let mut input = String::new();
-        stdin().read_line(&mut input).unwrap();
+        input::read_line(&mut input, &mut history).unwrap();
 
-        let (command, args) = parse(&input[..]);
-
-        let child = Command::new(command)
-            .args(args)
-            .spawn();
-
-        match child {
-            Ok(mut child) => {
-                if let Err(e) = child.wait() {
-                    eprintln!("{e}");
-                }
-            }
-            Err(e) => eprintln!("{e}")
-        }
+        let tokens = parse(input.as_str());
+        executing::execute(tokens);
     }
 
 }
 
-fn get_prompt() -> String {
-    "> ".to_string()
+fn print_prompt() {
+    let path = env::current_dir().unwrap().into_os_string().into_string().unwrap();
+    let hostname = whoami::hostname();
+    let username = whoami::username();
+
+    print!("\r{username}@{hostname}: {path} > ");
 }
