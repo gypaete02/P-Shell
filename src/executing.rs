@@ -119,9 +119,9 @@ fn execute_if_builtin(command: &String, args: &Vec<String>) -> bool {
     match command.as_str() {
 
         "cd" => {
-            env::set_current_dir(
-                args.get(0).unwrap_or(&".".to_string())
-            ).unwrap();
+            let path = args.get(0).cloned().unwrap_or(".".to_string());
+            env::set_current_dir(&path)
+                .unwrap_or_else(|_err| eprintln!("cd: No such file or directory: {path}"));
         }
         "exit" => {
             crossterm::terminal::disable_raw_mode().unwrap();

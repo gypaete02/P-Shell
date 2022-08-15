@@ -3,6 +3,7 @@ mod executing;
 mod input;
 mod data;
 mod completation;
+mod tests;
 
 use std::{io::{stdout, Write}, env};
 
@@ -11,13 +12,11 @@ use parsing::parse;
 
 fn main() {
 
-    //crossterm::terminal::enable_raw_mode().unwrap();
+    let _cleanup = Cleanup;
 
     let mut history = data::History::init();
     
     loop {
-        print_prompt();
-        stdout().flush().unwrap();
 
         let mut input = String::new();
         input::read_line(&mut input, &mut history).unwrap();
@@ -28,10 +27,10 @@ fn main() {
 
 }
 
-fn print_prompt() {
-    let path = env::current_dir().unwrap().into_os_string().into_string().unwrap();
-    let hostname = whoami::hostname();
-    let username = whoami::username();
+struct Cleanup;
 
-    print!("\r{username}@{hostname}: {path} > ");
+impl Drop for Cleanup {
+    fn drop(&mut self) {
+        crossterm::terminal::disable_raw_mode().expect("Could not set terminal to normal mode. Raw mode is enabled.");
+    }
 }
