@@ -1,14 +1,11 @@
-use std::io::{stdout, Write};
+use std::io::stdout;
 use std::env;
 
 use crossterm::cursor::MoveToColumn;
 use crossterm::execute;
 use crossterm::style::Print;
 use crossterm::terminal::{ClearType, Clear};
-use crossterm::{
-    cursor,
-    event::{self, KeyCode}
-};
+use crossterm::event::{self, KeyCode};
 
 use crate::completation;
 use crate::data::History;

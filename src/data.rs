@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 
 pub struct History {
     history: Vec<String>,
@@ -77,14 +75,14 @@ impl History {
 
 
 // TODO
-struct Variables {
-    variables: HashMap<String, Value>
-}
+//struct Variables {
+//    variables: HashMap<String, Value>
+//}
 
-enum Value {
-    Num,
-    Bool,
-    String,
-    // ...
-}
+//enum Value {
+//    Num,
+//    Bool,
+//    String,
+//    // ...
+//}
 

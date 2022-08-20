@@ -5,10 +5,7 @@ mod data;
 mod completation;
 mod tests;
 
-use std::{io::{stdout, Write}, env};
-
-use parsing::parse;
-
+use crate::parsing::parse;
 
 fn main() {
 
