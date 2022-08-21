@@ -1,27 +1,33 @@
-use std::path::{PathBuf, MAIN_SEPARATOR};
-use std::fs;
-
-
-// TODO
-pub fn complete(string: &mut String) {
-
-    if PathBuf::from(string.as_str()).exists() {
-
-        // TODO: list all dir entries, select them with tab / backtab
-
-       // let entries = fs::read_dir(string).unwrap();
-
-    } else {
-
-        // TODO: list all dir entries that match the unfinished path. tab and backtab to select.
-
-        //let parts = string.split(MAIN_SEPARATOR);
-    }
-
+pub struct Completer {
+    line: String,
+    index: usize,
+    possibilities: Vec<String>
 }
 
-//  elias/Documents/tes
-//
-//
-//
-//
+impl Completer {
+
+    pub fn new(line: String) -> Self {
+        Self {
+            line,
+            index: 0,
+            possibilities: vec![]
+        }
+    }
+
+    pub fn update(&mut self, line: String) {
+        // TODO:
+        // line = "dir1/dir2/file.t"
+        //
+        // todo: list dir2, filter out all files that don't start with 'file.t',
+        // and collect to a Vec.
+        // Store that Vec into self.possibilities, and when complete() is called iterate over the
+        // 'possibilities' with 'index'
+
+        self.line = line;
+    }
+
+    pub fn complete(&mut self) -> &str {
+        println!("\r\npath: {}\r", self.line);
+        &self.line
+    }
+}

@@ -7,7 +7,7 @@ use crossterm::style::Print;
 use crossterm::terminal::{ClearType, Clear};
 use crossterm::event::{self, KeyCode};
 
-use crate::completation;
+use crate::completation::Completer;
 use crate::data::History;
 
 
@@ -17,16 +17,9 @@ pub fn read_line(string: &mut String, history: &mut History) -> std::io::Result<
 
     let prompt = get_prompt();
     let mut position = 0;
+    let mut completer = Completer::new(string.clone());
 
     refresh(&prompt, string, &mut position)?;
-
-    read(string, &mut position, &prompt, history)?;
-
-    crossterm::terminal::disable_raw_mode()?;
-    Ok(())
-}
-
-fn read(string: &mut String, position: &mut usize, prompt: &String, history: &mut History) -> std::io::Result<()> {
 
     loop {
 
@@ -34,10 +27,11 @@ fn read(string: &mut String, position: &mut usize, prompt: &String, history: &mu
             match event.code {
 
                 KeyCode::Char(c) => {
-                    string.insert(*position, c);
-                    *position += 1;
+                    string.insert(position, c);
+                    position += 1;
 
-                    refresh(prompt, string, position)?;
+                    refresh(&prompt, string, &mut position)?;
+                    completer.update(word_at(position, string));
                 }
 
                 KeyCode::Enter => {
@@ -45,18 +39,19 @@ fn read(string: &mut String, position: &mut usize, prompt: &String, history: &mu
                     print!("\r\n");
                     history.add(string);
 
-                    return Ok(());
+                    break;
                 }
 
                 KeyCode::Delete => {
 
-                    if *position >= string.len() {
+                    if position >= string.len() {
                         continue;
                     }
 
-                    string.remove(*position);
+                    string.remove(position);
 
-                    refresh(prompt, string, position)?;
+                    refresh(&prompt, string, &mut position)?;
+                    completer.update(word_at(position, string));
                 }
 
                 KeyCode::Backspace => {
@@ -71,38 +66,40 @@ fn read(string: &mut String, position: &mut usize, prompt: &String, history: &mu
                     };
 
                     string.remove(p);
-                    *position = position.saturating_sub(1);
+                    position = position.saturating_sub(1);
 
-                    refresh(prompt, string, position)?;
+                    refresh(&prompt, string, &mut position)?;
+                    completer.update(word_at(position, string));
                 }
 
                 KeyCode::Left => {
-                    *position = position.saturating_sub(1);
-                    refresh(prompt, string, position)?;
+                    position = position.saturating_sub(1);
+                    refresh(&prompt, string, &mut position)?;
                 }
 
                 KeyCode::Right => {
-                    if *position < string.len() {
-                        *position += 1;
-                        refresh(prompt, string, position)?;
+                    if position < string.len() {
+                        position += 1;
+                        refresh(&prompt, string, &mut position)?;
                     }
                 }
 
                 KeyCode::Up => {
                     history.step_up(string);
-                    *position = string.len();
-                    refresh(prompt, string, position)?;
+                    position = string.len();
+                    refresh(&prompt, string, &mut position)?;
                 }
 
                 KeyCode::Down => {
                     history.step_down(string);
-                    *position = string.len();
-                    refresh(prompt, string, position)?;
+                    position = string.len();
+                    refresh(&prompt, string, &mut position)?;
                 }
 
                 KeyCode::Tab => {
-                    // TODO: Just use word under cursor, not whole string.
-                    completation::complete(string);
+                    string.push_str(completer.complete());
+                    // TODO Move cursor to end of completed word
+                    refresh(&prompt, string, &mut position)?;
                 }
 
                 _ => ()
@@ -111,6 +108,8 @@ fn read(string: &mut String, position: &mut usize, prompt: &String, history: &mu
 
     }
 
+    crossterm::terminal::disable_raw_mode()?;
+    Ok(())
 }
 
 fn get_prompt() -> String {
@@ -128,4 +127,48 @@ fn refresh(prompt: &String, string: &String, position: &mut usize) -> std::io::R
         Print(&string),
         MoveToColumn((prompt.len() + *position).saturating_sub(1) as u16)
     )
+}
+
+fn word_at(mut position: usize, string: &String) -> String {
+
+    // FIXME: Does not work correctly: when used returns last word...
+
+    if position == 0 {
+        return String::new();
+    }
+
+    position -= 1;
+    let mut beg = position;
+
+    loop {
+        match string.chars().nth(beg) {
+            Some(c) => {
+                if c == ' ' {
+                    beg += 1;
+                    break;
+                }
+                match beg.checked_sub(1) {
+                    Some(b) => beg = b,
+                    None => break
+                }
+            }
+            None => break
+        }
+    }
+
+    string[beg..=position].to_string()
+}
+
+#[test]
+fn test_word_at() {
+    let s1 = "cat test.tx".to_string();
+    let s2 = "cat test.tx > file".to_string();
+    let s3 = "test1 test2".to_string();
+    let s4 = "test1 test2".to_string();
+
+    assert_eq!(word_at(11, &s1).as_str(), "test.tx");
+    assert_eq!(word_at(10, &s2).as_str(), "test.t");
+    assert_eq!(word_at(0, &s3).as_str(), "");
+    assert_eq!(word_at(3, &s4).as_str(), "tes");
+
 }
